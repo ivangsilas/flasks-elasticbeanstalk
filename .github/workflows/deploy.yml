@@ -10,7 +10,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - uses: actions/setup-python@v5
         with:
@@ -26,6 +26,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Zip the app
+        run: zip -r deploy.zip . -x '.git*'
+
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v22
         with:
@@ -35,4 +38,4 @@ jobs:
           environment_name: ${{ secrets.EB_ENVIRONMENT_NAME }}
           region: ${{ secrets.AWS_REGION }}
           version_label: ${{ github.sha }}
-          
+          deployment_package: deploy.zip
