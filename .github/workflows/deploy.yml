@@ -46,9 +46,8 @@ jobs:
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v22
         with:
-          aws_access_key: ${{ steps.aws-creds.outputs.aws-access-key-id }}
-          aws_secret_key: ${{ steps.aws-creds.outputs.aws-secret-access-key }}
-          aws_session_token: ${{ steps.aws-creds.outputs.aws-session-token }}
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           application_name: ${{ secrets.EB_APPLICATION_NAME }}
           environment_name: ${{ secrets.EB_ENVIRONMENT_NAME }}
           region: us-east-1
