@@ -1,14 +1,10 @@
-name: Test and Deploy to Elastic Beanstalk (OIDC)
+name: Test and Deploy (Staging/Production)
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
     branches: [main]
-
-permissions:
-  id-token: write   # required so GitHub can create the OIDC token
-  contents: read
 
 jobs:
   test:
@@ -21,36 +17,58 @@ jobs:
       - run: pip install -r requirements.txt
       - run: pytest
 
-  deploy:
+  deploy-staging:
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
+    environment: staging          # <-- pulls secrets from the "staging" GitHub Environment
     steps:
       - uses: actions/checkout@v4
-      - name: Debug github context
-        run: |
-          echo "Repository: ${{ github.repository }}"
-          echo "Ref: ${{ github.ref }}"
-          echo "event_name: ${{ github.event_name }} "
-      - name: Configure AWS credentials via OIDC role
-        id: aws-creds
+
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Zip the app
         run: zip -r deploy.zip . -x '.git*'
 
-      - name: Deploy to Elastic Beanstalk
+      - name: Deploy to Elastic Beanstalk (staging)
         uses: einaregilsson/beanstalk-deploy@v22
         with:
-          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           application_name: ${{ secrets.EB_APPLICATION_NAME }}
           environment_name: ${{ secrets.EB_ENVIRONMENT_NAME }}
-          region: us-east-1
-          version_label: ${{ github.sha }}
+          region: ${{ secrets.AWS_REGION }}
+          version_label: staging-${{ github.sha }}
+          deployment_package: deploy.zip
+          use_existing_version_if_available: true
+
+  deploy-production:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production       # <-- this triggers the approval gate you set up
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Zip the app
+        run: zip -r deploy.zip . -x '.git*'
+
+      - name: Deploy to Elastic Beanstalk (production)
+        uses: einaregilsson/beanstalk-deploy@v22
+        with:
+          application_name: ${{ secrets.EB_APPLICATION_NAME }}
+          environment_name: ${{ secrets.EB_ENVIRONMENT_NAME }}
+          region: ${{ secrets.AWS_REGION }}
+          version_label: prod-${{ github.sha }}
           deployment_package: deploy.zip
           use_existing_version_if_available: true
