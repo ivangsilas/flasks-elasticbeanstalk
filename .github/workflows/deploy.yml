@@ -37,7 +37,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::697374140180:role/githubactions-eb-role
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: us-east-1
 
       - name: Zip the app
         run: zip -r deploy.zip . -x '.git*'
@@ -50,7 +50,7 @@ jobs:
           aws_session_token: ${{ steps.aws-creds.outputs.aws-session-token }}
           application_name: ${{ secrets.EB_APPLICATION_NAME }}
           environment_name: ${{ secrets.EB_ENVIRONMENT_NAME }}
-          region: ${{ secrets.AWS_REGION }}
+          region: us-east-1
           version_label: ${{ github.sha }}
           deployment_package: deploy.zip
           use_existing_version_if_available: true
